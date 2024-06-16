@@ -14,7 +14,7 @@ const config: QuartzConfig = {
     analytics: null,
     locale: "en-US",
     baseUrl: "kaushalpartani.github.io",
-    ignorePatterns: ["private", "templates", ".obsidian"],
+    ignorePatterns: ["private", "templates", ".obsidian", ".DS_Store", "README.md"],
     defaultDateType: "created",
     theme: {
       fontOrigin: "googleFonts",

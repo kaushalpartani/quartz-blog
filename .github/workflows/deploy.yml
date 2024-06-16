@@ -29,7 +29,7 @@ jobs:
       - name: Clone site-vault repository
         run: |
           git clone https://github.com/kaushalpartani/site-vault.git site-vault
-          cp -r site-vault/content/* content/
+          cp -r site-vault/content/ content/
       - name: Build Quartz
         run: npx quartz build
       - name: Upload artifact

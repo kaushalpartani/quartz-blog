@@ -4,11 +4,13 @@ import * as Component from "./quartz/components"
 // components shared across all pages
 export const sharedPageComponents: SharedLayout = {
   head: Component.Head(),
-  header: [],
+  header: [
+    Component.RecentNotes(),
+  ],
   footer: Component.Footer({
     links: {
-      GitHub: "https://github.com/jackyzha0/quartz",
-      "Discord Community": "https://discord.gg/cRFFHYye7t",
+      GitHub: "https://github.com/kaushalpartani",
+      LinkedIn: "https://www.linkedin.com/in/kaushal-p-5247a8121/",
     },
   }),
 }
@@ -16,7 +18,7 @@ export const sharedPageComponents: SharedLayout = {
 // components for pages that display a single page (e.g. a single note)
 export const defaultContentPageLayout: PageLayout = {
   beforeBody: [
-    Component.Breadcrumbs(),
+    Component.DesktopOnly(Component.Breadcrumbs()),
     Component.ArticleTitle(),
     Component.ContentMeta(),
     Component.TagList(),
@@ -25,13 +27,13 @@ export const defaultContentPageLayout: PageLayout = {
     Component.PageTitle(),
     Component.MobileOnly(Component.Spacer()),
     Component.Search(),
-    Component.Darkmode(),
+    Component.MobileOnly(Component.Spacer()),
+    Component.MobileOnly(Component.Darkmode()),
     Component.DesktopOnly(Component.Explorer()),
+
   ],
   right: [
-    Component.Graph(),
-    Component.DesktopOnly(Component.TableOfContents()),
-    Component.Backlinks(),
+    Component.DesktopOnly(Component.Darkmode()),
   ],
 }
 

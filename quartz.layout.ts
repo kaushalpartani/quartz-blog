@@ -5,7 +5,7 @@ import * as Component from "./quartz/components"
 export const sharedPageComponents: SharedLayout = {
   head: Component.Head(),
   header: [
-    Component.RecentNotes(),
+    Component.RecentNotes({showTags:false}),
   ],
   footer: Component.Footer({
     links: {
@@ -18,7 +18,6 @@ export const sharedPageComponents: SharedLayout = {
 // components for pages that display a single page (e.g. a single note)
 export const defaultContentPageLayout: PageLayout = {
   beforeBody: [
-    Component.DesktopOnly(Component.Breadcrumbs()),
     Component.ArticleTitle(),
     Component.ContentMeta(),
     Component.TagList(),

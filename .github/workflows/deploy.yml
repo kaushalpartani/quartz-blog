@@ -26,6 +26,8 @@ jobs:
         with:
           node-version: 18.14
       - name: Install Dependencies
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
         run: npm ci
       - name: Clone site-vault repository
         run: |

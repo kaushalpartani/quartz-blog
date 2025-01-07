@@ -16,6 +16,7 @@ const config: QuartzConfig = {
     baseUrl: "kaushalpartani.github.io",
     ignorePatterns: ["private", "templates", ".obsidian", ".DS_Store", "README.md", ".trash"],
     defaultDateType: "created",
+    generateSocialImages: false,
     theme: {
       fontOrigin: "googleFonts",
       cdnCaching: true,

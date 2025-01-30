@@ -13,7 +13,7 @@ const config: QuartzConfig = {
     enablePopovers: true,
     analytics: null,
     locale: "en-US",
-    baseUrl: "kaushalpartani.github.io",
+    baseUrl: "blog.kaushalpartani.com",
     ignorePatterns: ["private", "templates", ".obsidian", ".DS_Store", "README.md", ".trash"],
     defaultDateType: "created",
     generateSocialImages: false,

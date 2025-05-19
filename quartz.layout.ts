@@ -12,6 +12,7 @@ export const sharedPageComponents: SharedLayout = {
     links: {
       GitHub: "https://github.com/kaushalpartani",
       LinkedIn: "https://www.linkedin.com/in/kaushal-p-5247a8121/",
+      "Want to become a better programmer?" : "https://www.recurse.com/scout/click?t=cf70c4faae69401e8658baa2dfd12db6", 
     },
   }),
 }

@@ -31,11 +31,11 @@ export const defaultContentPageLayout: PageLayout = {
     Component.MobileOnly(Component.Spacer()),
     Component.MobileOnly(Component.Darkmode()),
     Component.DesktopOnly(Component.Explorer()),
+    Component.MobileOnly(Component.Explorer()),
 
   ],
   right: [
     Component.DesktopOnly(Component.Darkmode()),
-    Component.MobileOnly(Component.Explorer()),
   ],
 }
 
@@ -52,10 +52,10 @@ export const defaultListPageLayout: PageLayout = {
     Component.MobileOnly(Component.Spacer()),
     Component.MobileOnly(Component.Darkmode()),
     Component.DesktopOnly(Component.Explorer()),
+    Component.MobileOnly(Component.Explorer()),
 
   ],
   right: [
     Component.DesktopOnly(Component.Darkmode()),
-    Component.MobileOnly(Component.Explorer()),
   ],
 }

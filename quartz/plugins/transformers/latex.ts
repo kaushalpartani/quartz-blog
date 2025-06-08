@@ -59,6 +59,8 @@ export const Latex: QuartzTransformerPlugin<Partial<Options>> = (opts) => {
               },
             ],
           }
+        default:
+          return { css: [], js: [] }
       }
     },
   }

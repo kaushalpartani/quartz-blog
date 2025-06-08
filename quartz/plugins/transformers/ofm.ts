@@ -1,13 +1,5 @@
 import { QuartzTransformerPlugin } from "../types"
-import {
-  Root,
-  Html,
-  BlockContent,
-  PhrasingContent,
-  DefinitionContent,
-  Paragraph,
-  Code,
-} from "mdast"
+import { Root, Html, BlockContent, DefinitionContent, Paragraph, Code } from "mdast"
 import { Element, Literal, Root as HtmlRoot } from "hast"
 import { ReplaceFunction, findAndReplace as mdastFindReplace } from "mdast-util-find-and-replace"
 import rehypeRaw from "rehype-raw"
@@ -16,15 +8,13 @@ import path from "path"
 import { splitAnchor } from "../../util/path"
 import { JSResource, CSSResource } from "../../util/resources"
 // @ts-ignore
-import calloutScript from "../../components/scripts/callout.inline"
+import calloutScript from "../../components/scripts/callout.inline.ts"
 // @ts-ignore
-import checkboxScript from "../../components/scripts/checkbox.inline"
-// @ts-ignore
-import mermaidScript from "../../components/scripts/mermaid.inline"
-import mermaidStyle from "../../components/styles/mermaid.inline.scss"
+import checkboxScript from "../../components/scripts/checkbox.inline.ts"
 import { FilePath, pathToRoot, slugTag, slugifyFilePath } from "../../util/path"
 import { toHast } from "mdast-util-to-hast"
 import { toHtml } from "hast-util-to-html"
+import { PhrasingContent } from "mdast-util-find-and-replace/lib"
 import { capitalize } from "../../util/lang"
 import { PluggableList } from "unified"
 
@@ -41,7 +31,6 @@ export interface Options {
   enableYouTubeEmbed: boolean
   enableVideoEmbed: boolean
   enableCheckbox: boolean
-  disableBrokenWikilinks: boolean
 }
 
 const defaultOptions: Options = {
@@ -57,7 +46,6 @@ const defaultOptions: Options = {
   enableYouTubeEmbed: true,
   enableVideoEmbed: true,
   enableCheckbox: false,
-  disableBrokenWikilinks: false,
 }
 
 const calloutMapping = {
@@ -115,9 +103,9 @@ export const arrowRegex = new RegExp(/(-{1,2}>|={1,2}>|<-{1,2}|<={1,2})/g)
 // \[\[               -> open brace
 // ([^\[\]\|\#]+)     -> one or more non-special characters ([,],|, or #) (name)
 // (#[^\[\]\|\#]+)?   -> # then one or more non-special characters (heading link)
-// (\\?\|[^\[\]\#]+)? -> optional escape \ then | then zero or more non-special characters (alias)
+// (\\?\|[^\[\]\#]+)? -> optional escape \ then | then one or more non-special characters (alias)
 export const wikilinkRegex = new RegExp(
-  /!?\[\[([^\[\]\|\#\\]+)?(#+[^\[\]\|\#\\]+)?(\\?\|[^\[\]\#]*)?\]\]/g,
+  /!?\[\[([^\[\]\|\#\\]+)?(#+[^\[\]\|\#\\]+)?(\\?\|[^\[\]\#]+)?\]\]/g,
 )
 
 // ^\|([^\n])+\|\n(\|) -> matches the header row
@@ -161,12 +149,20 @@ export const ObsidianFlavoredMarkdown: QuartzTransformerPlugin<Partial<Options>>
     textTransform(_ctx, src) {
       // do comments at text level
       if (opts.comments) {
-        src = src.replace(commentRegex, "")
+        if (src instanceof Buffer) {
+          src = src.toString()
+        }
+
+        src = (src as string).replace(commentRegex, "")
       }
 
       // pre-transform blockquotes
       if (opts.callouts) {
-        src = src.replace(calloutLineRegex, (value) => {
+        if (src instanceof Buffer) {
+          src = src.toString()
+        }
+
+        src = (src as string).replace(calloutLineRegex, (value) => {
           // force newline after title of callout
           return value + "\n> "
         })
@@ -174,8 +170,12 @@ export const ObsidianFlavoredMarkdown: QuartzTransformerPlugin<Partial<Options>>
 
       // pre-transform wikilinks (fix anchors to things that may contain illegal syntax e.g. codeblocks, latex)
       if (opts.wikilinks) {
+        if (src instanceof Buffer) {
+          src = src.toString()
+        }
+
         // replace all wikilinks inside a table first
-        src = src.replace(tableRegex, (value) => {
+        src = (src as string).replace(tableRegex, (value) => {
           // escape all aliases and headers in wikilinks inside a table
           return value.replace(tableWikilinkRegex, (_value, raw) => {
             // const [raw]: (string | undefined)[] = capture
@@ -189,11 +189,11 @@ export const ObsidianFlavoredMarkdown: QuartzTransformerPlugin<Partial<Options>>
         })
 
         // replace all other wikilinks
-        src = src.replace(wikilinkRegex, (value, ...capture) => {
+        src = (src as string).replace(wikilinkRegex, (value, ...capture) => {
           const [rawFp, rawHeader, rawAlias]: (string | undefined)[] = capture
 
           const [fp, anchor] = splitAnchor(`${rawFp ?? ""}${rawHeader ?? ""}`)
-          const blockRef = Boolean(rawHeader?.startsWith("#^")) ? "^" : ""
+          const blockRef = Boolean(rawHeader?.match(/^#?\^/)) ? "^" : ""
           const displayAnchor = anchor ? `#${blockRef}${anchor.trim().replace(/^#+/, "")}` : ""
           const displayAlias = rawAlias ?? rawHeader?.replace("#", "|") ?? ""
           const embedDisplay = value.startsWith("!") ? "!" : ""
@@ -208,7 +208,7 @@ export const ObsidianFlavoredMarkdown: QuartzTransformerPlugin<Partial<Options>>
 
       return src
     },
-    markdownPlugins(ctx) {
+    markdownPlugins(_ctx) {
       const plugins: PluggableList = []
 
       // regex replacements
@@ -224,7 +224,7 @@ export const ObsidianFlavoredMarkdown: QuartzTransformerPlugin<Partial<Options>>
                 let [rawFp, rawHeader, rawAlias] = capture
                 const fp = rawFp?.trim() ?? ""
                 const anchor = rawHeader?.trim() ?? ""
-                const alias: string | undefined = rawAlias?.slice(1).trim()
+                const alias = rawAlias?.slice(1).trim()
 
                 // embed cases
                 if (value.startsWith("!")) {
@@ -275,18 +275,6 @@ export const ObsidianFlavoredMarkdown: QuartzTransformerPlugin<Partial<Options>>
                   }
 
                   // otherwise, fall through to regular link
-                }
-
-                // treat as broken link if slug not in ctx.allSlugs
-                if (opts.disableBrokenWikilinks) {
-                  const slug = slugifyFilePath(fp as FilePath)
-                  const exists = ctx.allSlugs && ctx.allSlugs.includes(slug)
-                  if (!exists) {
-                    return {
-                      type: "html",
-                      value: `<a class=\"internal broken\">${alias ?? fp}</a>`,
-                    }
-                  }
                 }
 
                 // internal link
@@ -478,30 +466,6 @@ export const ObsidianFlavoredMarkdown: QuartzTransformerPlugin<Partial<Options>>
                   })
                 }
 
-                // For the rest of the MD callout elements other than the title, wrap them with
-                // two nested HTML <div>s (use some hacked mdhast component to achieve this) of
-                // class `callout-content` and `callout-content-inner` respectively for
-                // grid-based collapsible animation.
-                if (calloutContent.length > 0) {
-                  node.children = [
-                    node.children[0],
-                    {
-                      data: { hProperties: { className: ["callout-content"] }, hName: "div" },
-                      type: "blockquote",
-                      children: [
-                        {
-                          data: {
-                            hProperties: { className: ["callout-content-inner"] },
-                            hName: "div",
-                          },
-                          type: "blockquote",
-                          children: [...calloutContent],
-                        },
-                      ],
-                    },
-                  ]
-                }
-
                 // replace first line of blockquote with title and rest of the paragraph text
                 node.children.splice(0, 1, ...blockquoteContent)
 
@@ -522,6 +486,21 @@ export const ObsidianFlavoredMarkdown: QuartzTransformerPlugin<Partial<Options>>
                     "data-callout-fold": collapse,
                     "data-callout-metadata": calloutMetaData,
                   },
+                }
+
+                // Add callout-content class to callout body if it has one.
+                if (calloutContent.length > 0) {
+                  const contentData: BlockContent | DefinitionContent = {
+                    data: {
+                      hProperties: {
+                        className: "callout-content",
+                      },
+                      hName: "div",
+                    },
+                    type: "blockquote",
+                    children: [...calloutContent],
+                  }
+                  node.children = [node.children[0], contentData]
                 }
               }
             })
@@ -698,6 +677,7 @@ export const ObsidianFlavoredMarkdown: QuartzTransformerPlugin<Partial<Options>>
                     properties: {
                       className: ["expand-button"],
                       "aria-label": "Expand mermaid diagram",
+                      "aria-hidden": "true",
                       "data-view-component": true,
                     },
                     children: [
@@ -728,13 +708,70 @@ export const ObsidianFlavoredMarkdown: QuartzTransformerPlugin<Partial<Options>>
                   {
                     type: "element",
                     tagName: "div",
-                    properties: { id: "mermaid-container", role: "dialog" },
+                    properties: { id: "mermaid-container" },
                     children: [
                       {
                         type: "element",
                         tagName: "div",
                         properties: { id: "mermaid-space" },
                         children: [
+                          {
+                            type: "element",
+                            tagName: "div",
+                            properties: { className: ["mermaid-header"] },
+                            children: [
+                              {
+                                type: "element",
+                                tagName: "button",
+                                properties: {
+                                  className: ["close-button"],
+                                  "aria-label": "close button",
+                                },
+                                children: [
+                                  {
+                                    type: "element",
+                                    tagName: "svg",
+                                    properties: {
+                                      "aria-hidden": "true",
+                                      xmlns: "http://www.w3.org/2000/svg",
+                                      width: 24,
+                                      height: 24,
+                                      viewBox: "0 0 24 24",
+                                      fill: "none",
+                                      stroke: "currentColor",
+                                      "stroke-width": "2",
+                                      "stroke-linecap": "round",
+                                      "stroke-linejoin": "round",
+                                    },
+                                    children: [
+                                      {
+                                        type: "element",
+                                        tagName: "line",
+                                        properties: {
+                                          x1: 18,
+                                          y1: 6,
+                                          x2: 6,
+                                          y2: 18,
+                                        },
+                                        children: [],
+                                      },
+                                      {
+                                        type: "element",
+                                        tagName: "line",
+                                        properties: {
+                                          x1: 6,
+                                          y1: 6,
+                                          x2: 18,
+                                          y2: 18,
+                                        },
+                                        children: [],
+                                      },
+                                    ],
+                                  },
+                                ],
+                              },
+                            ],
+                          },
                           {
                             type: "element",
                             tagName: "div",
@@ -771,20 +808,6 @@ export const ObsidianFlavoredMarkdown: QuartzTransformerPlugin<Partial<Options>>
           script: calloutScript,
           loadTime: "afterDOMReady",
           contentType: "inline",
-        })
-      }
-
-      if (opts.mermaid) {
-        js.push({
-          script: mermaidScript,
-          loadTime: "afterDOMReady",
-          contentType: "inline",
-          moduleType: "module",
-        })
-
-        css.push({
-          content: mermaidStyle,
-          inline: true,
         })
       }
 

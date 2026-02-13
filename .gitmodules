@@ -1,0 +1,3 @@
+[submodule "content/site-vault"]
+	path = content/site-vault
+	url = https://github.com/kaushalpartani/site-vault.git

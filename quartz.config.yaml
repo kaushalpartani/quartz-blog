@@ -15,6 +15,7 @@ configuration:
     - README.md
     - .trash
     - Personal
+    - "**/*.excalidraw"
   theme:
     fontOrigin: googleFonts
     cdnCaching: true
